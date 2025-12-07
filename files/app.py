@@ -88,12 +88,66 @@ def main():
     # Sidebar for model configuration
     st.sidebar.header("Model Configuration")
     
-    # Model path input
-    model_path = st.sidebar.text_input(
-        "Path to TensorFlow Model (.h5)",
-        value="model.h5",
-        help="Enter the path to your TensorFlow model file"
-    )
+    # Find available .h5 model files
+    import os
+    import glob
+    
+    # Add refresh button
+    col1, col2 = st.sidebar.columns([3, 1])
+    with col2:
+        refresh = st.button("🔄", help="Refresh model list")
+    
+    # Search for .h5 files in current directory and common model directories
+    search_paths = [
+        "./*.h5",
+        "./models/*.h5",
+        "./saved_models/*.h5",
+        "../*.h5",
+    ]
+    
+    available_models = []
+    for pattern in search_paths:
+        available_models.extend(glob.glob(pattern, recursive=False))
+    
+    # Remove duplicates and sort
+    available_models = sorted(list(set(available_models)))
+    
+    # Model selection
+    if available_models:
+        st.sidebar.success(f"✓ Found {len(available_models)} model(s)")
+        
+        # Create friendly display names
+        model_display = {}
+        for path in available_models:
+            filename = os.path.basename(path)
+            display_name = f"{filename} ({os.path.dirname(path) or '.'}/)"
+            model_display[display_name] = path
+        
+        selected_display = st.sidebar.selectbox(
+            "Select TensorFlow Model",
+            options=list(model_display.keys()),
+            help="Choose a model from the available .h5 files"
+        )
+        model_path = model_display[selected_display]
+        
+        # Show the actual path being used
+        st.sidebar.caption(f"📂 Path: `{model_path}`")
+    else:
+        st.sidebar.warning("⚠️ No .h5 model files found")
+        st.sidebar.info("💡 Place your model.h5 file in the current directory or use custom path below")
+        model_path = None
+    
+    # Option to manually enter path
+    with st.sidebar.expander("📝 Enter custom path"):
+        custom_path = st.text_input(
+            "Custom model path",
+            value="",
+            placeholder="e.g., /path/to/your/model.h5",
+            help="Override the selection above with a custom path"
+        )
+        if custom_path:
+            model_path = custom_path
+            st.info(f"Using custom path: {custom_path}")
     
     # Load model
     model = None
